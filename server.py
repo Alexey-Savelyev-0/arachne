@@ -1,15 +1,17 @@
 """
-FastMCP quickstart example.
-
-cd to the `examples/snippets/clients` directory and run:
-    uv run server fastmcp_quickstart stdio
-what do we make now? for now we'll just have an Agent have basic access to a platform.
-What platform?
 We'll make it give us financial advice
+Instead of attempting to predict stock prices or telling us where to invest,
+instead we'll aim for a semantic approach - an analysis of articles/public sentiment
+about a set of given companies.
+For now just analyze trending companies and tech that you might want to be aware of.
+
 
 1. Stock Data API
 2. Knowledge base (RAG)
 3. News Info (API)
+
+# First this agent should tell me what the current hot news are in regards to finance.
+
 """
 
 
@@ -26,6 +28,11 @@ mcp = FastMCP("Demo")
 def add(a: int, b: int) -> int:
     """Add two numbers"""
     return a + b
+
+
+@mcp.tool()
+def getData(company: str) -> str:
+    return ""
 
 
 # Add a dynamic greeting resource
