@@ -5,8 +5,7 @@ from langgraph.graph import StateGraph, END
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from typing_extensions import Literal
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_community.llms import Ollama
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 
 from pydantic import BaseModel, Field
 
@@ -26,10 +25,6 @@ class Route(BaseModel):
     )
 
 
-llm = Ollama(
-    model="qwen3",  # Qwen 2.5 model
-    base_url="http://localhost:11434"  # default Ollama endpoint
-)
 
 
 
@@ -37,6 +32,11 @@ llm = Ollama(
 class FinancialOrchestrator:
     def __init__(self):
         """Initialize the orchestrator with an LLM client (our Ollama client)"""
+        
+        llm = ChatOllama(
+            model="qwen3",  # Qwen 2.5 model
+            base_url="http://localhost:11434"  # default Ollama endpoint
+        )
         self.router = llm.with_structured_output(Route)
         self.market_data_agent = None  # Will connect to our existing MCP client
         self.graph = self._build_graph()
@@ -54,7 +54,7 @@ class FinancialOrchestrator:
         workflow.add_node("market_data", self._get_market_data)
         workflow.add_node("fundamental_analysis", self._get_fundamentals)
         workflow.add_node("news_analysis", self._get_news)
-        workflow.add_node("synthesizer", self._synthesize_response)
+        workflow.add_node("synthesiser", self._synthesize_response)
         
         # Define the start node (router)
         workflow.set_entry_point("router")
@@ -71,12 +71,14 @@ class FinancialOrchestrator:
         )
         workflow.add_edge("market_data","synthesiser")
         workflow.add_edge("news_analysis","synthesiser")
-        workflow.add_endge("fundamental_analysis","synthesiser")
+        workflow.add_edge("fundamental_analysis","synthesiser")
 
-        workflow.add_edge("synthesizer", END)
+        workflow.add_edge("synthesiser", END)
         workflow = workflow.compile()
-        display(Image(workflow.get_graph().draw_mermaid_png()))
-        return workflow.compile()
+        png_data = workflow.get_graph().draw_mermaid_png()
+        with open("workflow_graph.png", "wb") as f:
+                f.write(png_data)
+        return workflow
     
     async def _route_query(self, state: AgentState) -> Dict[str, Any]:
         """Analyze the user query and decide which agents to call"""
@@ -89,25 +91,25 @@ class FinancialOrchestrator:
             HumanMessage(content=state["user_query"]),
         ]
         )
-        
+        #print(route_decision)
         print(f"Router decision: {route_decision.step}")
         return {"route_decision": route_decision.step}
     
     def _route_decision(self, state: AgentState) -> str:
         """Determine the routing path based on route decision"""
         routes = state["route_decision"]
-        if routes == "market_analysis":
-            return "_get_market_data"
+        if routes == "market_data":
+            return "market_data"
         elif routes == "news_analysis":
-            return "unknown"
+            return "news_analysis"
         elif routes == "fundamental_analysis":
             return "unknown"
         else:
-            return "_get_market_data"
+            return "market_data"
         
     
     async def _get_market_data(self, state: AgentState) -> Dict[str, Any]:
-        """Get market data using our existing MCP client"""
+        """Get market data and analysis using our existing MCP client"""
         if not self.market_data_agent:
             return {"market_data": "Market data agent not available"}
         
@@ -192,7 +194,7 @@ class FinancialOrchestrator:
         """Call our LLM for response synthesis"""
         # This would integrate with our existing Ollama client
         # For now, placeholder
-        return f"Synthesized response based on: {prompt[:100]}..."
+        return f"Synthesized response based on: {prompt}..."
     
     async def process_query(self, user_query: str) -> str:
         """Main entry point - process a user query through the workflow"""
@@ -216,11 +218,9 @@ async def main():
     """Example of how to use the orchestrator"""
     
     # This would be our existing Ollama client
-    class MockLLMClient:
-        pass
+
     
-    router = MockLLMClient()
-    orchestrator = FinancialOrchestrator(router)
+    orchestrator = FinancialOrchestrator()
     
     # We would inject our existing MCP client here
     # orchestrator.set_market_data_agent(our_existing_mcp_client)
