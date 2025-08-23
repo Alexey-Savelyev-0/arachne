@@ -24,7 +24,8 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from dotenv import load_dotenv
 import os
-
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.prebuilt import create_react_agent
 
 env_exists = load_dotenv()  
 #if not(env_exists):
@@ -33,7 +34,7 @@ env_exists = load_dotenv()
 env=os.environ.copy()
 print(f"Debug: API key from environment: {os.environ.get('ALPHA_VANTAGE_API_KEY', 'NOT FOUND')}")
 
-class MCPClient:
+class MarketAgent:
     def __init__(self):
         # Initialize session and client objects
         self.session: Optional[ClientSession] = None
@@ -209,7 +210,7 @@ async def main():
         print("Usage: python client.py <path_to_server_script>")
         sys.exit(1)
 
-    client = MCPClient()
+    client = MarketAgent()
     try:
         await client.connect_to_server(sys.argv[1])
         await client.chat_loop()
